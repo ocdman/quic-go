@@ -7,8 +7,10 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	quic "github.com/phuslu/quic-go"
 
@@ -34,6 +36,12 @@ type RoundTripper struct {
 	// uncompressed.
 	DisableCompression bool
 
+	// ResponseHeaderTimeout, if non-zero, specifies the amount of
+	// time to wait for a server's response headers after fully
+	// writing the request (including its body, if any). This
+	// time does not include the time to read the response body.
+	ResponseHeaderTimeout time.Duration
+
 	// TLSClientConfig specifies the TLS configuration to use with
 	// tls.Client. If nil, the default configuration is used.
 	TLSClientConfig *tls.Config
@@ -48,6 +56,13 @@ type RoundTripper struct {
 	// QuicConfig is the quic.Config used for dialing new connections.
 	// If nil, reasonable default values will be used.
 	QuicConfig *quic.Config
+
+	// KeepAliveTimeout is specifies an optional duration for quic.Session life time.
+	// If this value is zero, it will never close
+	KeepAliveTimeout time.Duration
+
+	// IdleConnTimeout is specifies an optional duration for quic.Session idle time.
+	IdleConnTimeout time.Duration
 
 	clients map[string]roundTripCloser
 }
@@ -130,15 +145,22 @@ func (r *RoundTripper) getClient(hostname string, onlyCached bool) (http.RoundTr
 		hostnameKey = hostname
 	}
 
-	client, ok := r.clients[hostnameKey]
+	c, ok := r.clients[hostnameKey]
+	if ok && r.KeepAliveTimeout != 0 && time.Since(c.(*client).createdAt) > r.KeepAliveTimeout {
+		ok = false
+	}
+	if ok && r.IdleConnTimeout != 0 && time.Since(c.(*client).accessAt) > r.IdleConnTimeout {
+		ok = false
+	}
 	if !ok {
 		if onlyCached {
 			return nil, ErrNoCachedConn
 		}
-		client = newClient(hostname, r.TLSClientConfig, &roundTripperOpts{DisableCompression: r.DisableCompression, DialAddr: r.DialAddr}, r.QuicConfig)
-		r.clients[hostnameKey] = client
+		c = newClient(hostname, r.TLSClientConfig, &roundTripperOpts{DisableCompression: r.DisableCompression, ResponseHeaderTimeout: r.ResponseHeaderTimeout, DialAddr: r.DialAddr}, r.QuicConfig)
+		runtime.SetFinalizer(c, func(r *client) { r.Close() })
+		r.clients[hostnameKey] = c
 	}
-	return client, nil
+	return c, nil
 }
 
 // Close closes the QUIC connections that this RoundTripper has used
