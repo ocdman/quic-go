@@ -908,7 +908,10 @@ func (s *session) newStream(id protocol.StreamID) streamI {
 		initialSendWindow,
 		s.rttStats,
 	)
-	return newStream(id, s, flowController, s.version)
+	str := newStream(id, s, flowController, s.version)
+	str.laddr = s.LocalAddr()
+	str.raddr = s.RemoteAddr()
+	return str
 }
 
 func (s *session) newCryptoStream() cryptoStreamI {
