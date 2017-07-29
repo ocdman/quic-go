@@ -121,6 +121,8 @@ type session struct {
 	// keepAlivePingSent stores whether a Ping frame was sent to the peer or not
 	// it is reset as soon as we receive a packet from the peer
 	keepAlivePingSent bool
+
+	connectionState *tls.ConnectionState
 }
 
 var _ Session = &session{}
@@ -345,7 +347,9 @@ func (s *session) run() error {
 	defer s.ctxCancel()
 
 	go func() {
-		if err := s.cryptoSetup.HandleCryptoStream(); err != nil {
+		cs, err := s.cryptoSetup.HandleCryptoStream()
+		s.connectionState = cs
+		if err != nil {
 			s.Close(err)
 		}
 	}()
@@ -1006,4 +1010,8 @@ func (s *session) getCryptoStream() cryptoStreamI {
 
 func (s *session) GetVersion() protocol.VersionNumber {
 	return s.version
+}
+
+func (s *session) ConnectionState() *tls.ConnectionState {
+	return s.connectionState
 }

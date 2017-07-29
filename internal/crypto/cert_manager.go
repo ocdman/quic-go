@@ -18,6 +18,7 @@ type CertManager interface {
 	GetLeafCertHash() (uint64, error)
 	VerifyServerProof(proof, chlo, serverConfigData []byte) bool
 	Verify(hostname string) error
+	GetCertificateChain() []*x509.Certificate
 }
 
 type certManager struct {
@@ -127,4 +128,8 @@ func (c *certManager) Verify(hostname string) error {
 
 	_, err := leafCert.Verify(opts)
 	return err
+}
+
+func (c *certManager) GetCertificateChain() []*x509.Certificate {
+	return c.chain
 }

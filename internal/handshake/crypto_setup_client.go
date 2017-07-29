@@ -30,6 +30,8 @@ type cryptoSetupClient struct {
 
 	serverConfig *serverConfigClient
 
+	connectionState *tls.ConnectionState
+
 	stk              []byte
 	sno              []byte
 	nonc             []byte
@@ -100,7 +102,7 @@ func NewCryptoSetupClient(
 	}, nil
 }
 
-func (h *cryptoSetupClient) HandleCryptoStream() error {
+func (h *cryptoSetupClient) HandleCryptoStream() (*tls.ConnectionState, error) {
 	messageChan := make(chan HandshakeMessage)
 	errorChan := make(chan error, 1)
 
@@ -118,7 +120,7 @@ func (h *cryptoSetupClient) HandleCryptoStream() error {
 	for {
 		err := h.maybeUpgradeCrypto()
 		if err != nil {
-			return err
+			return h.connectionState, err
 		}
 
 		h.mutex.RLock()
@@ -128,7 +130,7 @@ func (h *cryptoSetupClient) HandleCryptoStream() error {
 		if sendCHLO {
 			err = h.sendCHLO()
 			if err != nil {
-				return err
+				return h.connectionState, err
 			}
 		}
 
@@ -136,33 +138,33 @@ func (h *cryptoSetupClient) HandleCryptoStream() error {
 		select {
 		case divNonce := <-h.divNonceChan:
 			if len(h.diversificationNonce) != 0 && !bytes.Equal(h.diversificationNonce, divNonce) {
-				return errConflictingDiversificationNonces
+				return h.connectionState, errConflictingDiversificationNonces
 			}
 			h.diversificationNonce = divNonce
 			// there's no message to process, but we should try upgrading the crypto again
 			continue
 		case message = <-messageChan:
 		case err = <-errorChan:
-			return err
+			return h.connectionState, err
 		}
 
 		utils.Debugf("Got %s", message)
 		switch message.Tag {
 		case TagREJ:
 			if err := h.handleREJMessage(message.Data); err != nil {
-				return err
+				return h.connectionState, err
 			}
 		case TagSHLO:
 			params, err := h.handleSHLOMessage(message.Data)
 			if err != nil {
-				return err
+				return h.connectionState, err
 			}
 			// blocks until the session has received the parameters
 			h.paramsChan <- *params
 			h.handshakeEvent <- struct{}{}
 			close(h.handshakeEvent)
 		default:
-			return qerr.InvalidCryptoMessageType
+			return h.connectionState, qerr.InvalidCryptoMessageType
 		}
 	}
 }
@@ -282,6 +284,13 @@ func (h *cryptoSetupClient) handleSHLOMessage(cryptoData map[Tag][]byte) (*Trans
 	if err != nil {
 		return nil, qerr.InvalidCryptoMessageParameter
 	}
+
+	h.connectionState = &tls.ConnectionState{
+		HandshakeComplete: true,
+		Version:           tls.VersionTLS13,
+		PeerCertificates:  h.certManager.GetCertificateChain(),
+	}
+
 	return params, nil
 }
 

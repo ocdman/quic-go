@@ -1,6 +1,7 @@
 package handshake
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -29,6 +30,8 @@ type cryptoSetupTLS struct {
 	tls            MintTLS
 	cryptoStream   *CryptoStreamConn
 	handshakeEvent chan<- struct{}
+
+	connectionState *tls.ConnectionState
 }
 
 // NewCryptoSetupTLSServer creates a new TLS CryptoSetup instance for a server
@@ -72,23 +75,23 @@ func NewCryptoSetupTLSClient(
 	}, nil
 }
 
-func (h *cryptoSetupTLS) HandleCryptoStream() error {
+func (h *cryptoSetupTLS) HandleCryptoStream() (*tls.ConnectionState, error) {
 	if h.perspective == protocol.PerspectiveServer {
 		// mint already wrote the ServerHello, EncryptedExtensions and the certificate chain to the buffer
 		// send out that data now
 		if _, err := h.cryptoStream.Flush(); err != nil {
-			return err
+			return h.connectionState, err
 		}
 	}
 
 handshakeLoop:
 	for {
 		if alert := h.tls.Handshake(); alert != mint.AlertNoAlert {
-			return fmt.Errorf("TLS handshake error: %s (Alert %d)", alert.String(), alert)
+			return h.connectionState, fmt.Errorf("TLS handshake error: %s (Alert %d)", alert.String(), alert)
 		}
 		switch h.tls.State() {
 		case mint.StateClientStart: // this happens if a stateless retry is performed
-			return ErrCloseSessionForRetry
+			return h.connectionState, ErrCloseSessionForRetry
 		case mint.StateClientConnected, mint.StateServerConnected:
 			break handshakeLoop
 		}
@@ -96,7 +99,7 @@ handshakeLoop:
 
 	aead, err := h.keyDerivation(h.tls, h.perspective)
 	if err != nil {
-		return err
+		return h.connectionState, err
 	}
 	h.mutex.Lock()
 	h.aead = aead
@@ -104,7 +107,7 @@ handshakeLoop:
 
 	h.handshakeEvent <- struct{}{}
 	close(h.handshakeEvent)
-	return nil
+	return h.connectionState, nil
 }
 
 func (h *cryptoSetupTLS) Open(dst, src []byte, packetNumber protocol.PacketNumber, associatedData []byte) ([]byte, protocol.EncryptionLevel, error) {
