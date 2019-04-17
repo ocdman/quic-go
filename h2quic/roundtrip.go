@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	quic "github.com/phuslu/quic-go"
+	quic "github.com/ocdman/quic-go"
 
 	"golang.org/x/net/lex/httplex"
 )

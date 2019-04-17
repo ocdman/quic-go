@@ -7,8 +7,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/phuslu/quic-go/internal/handshake"
-	"github.com/phuslu/quic-go/internal/protocol"
+	"github.com/ocdman/quic-go/internal/handshake"
+	"github.com/ocdman/quic-go/internal/protocol"
 )
 
 // The StreamID is the ID of a QUIC stream.

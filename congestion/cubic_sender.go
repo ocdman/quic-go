@@ -3,8 +3,8 @@ package congestion
 import (
 	"time"
 
-	"github.com/phuslu/quic-go/internal/protocol"
-	"github.com/phuslu/quic-go/internal/utils"
+	"github.com/ocdman/quic-go/internal/protocol"
+	"github.com/ocdman/quic-go/internal/utils"
 )
 
 const (

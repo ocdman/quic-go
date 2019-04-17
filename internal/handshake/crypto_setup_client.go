@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phuslu/quic-go/internal/crypto"
-	"github.com/phuslu/quic-go/internal/protocol"
-	"github.com/phuslu/quic-go/internal/utils"
-	"github.com/phuslu/quic-go/qerr"
+	"github.com/ocdman/quic-go/internal/crypto"
+	"github.com/ocdman/quic-go/internal/protocol"
+	"github.com/ocdman/quic-go/internal/utils"
+	"github.com/ocdman/quic-go/qerr"
 )
 
 type cryptoSetupClient struct {

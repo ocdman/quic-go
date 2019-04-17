@@ -17,10 +17,10 @@ import (
 
 	_ "net/http/pprof"
 
-	quic "github.com/phuslu/quic-go"
-	"github.com/phuslu/quic-go/h2quic"
-	"github.com/phuslu/quic-go/internal/protocol"
-	"github.com/phuslu/quic-go/internal/utils"
+	quic "github.com/ocdman/quic-go"
+	"github.com/ocdman/quic-go/h2quic"
+	"github.com/ocdman/quic-go/internal/protocol"
+	"github.com/ocdman/quic-go/internal/utils"
 )
 
 type binds []string

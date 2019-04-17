@@ -8,9 +8,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/phuslu/quic-go/internal/protocol"
-	"github.com/phuslu/quic-go/internal/utils"
-	"github.com/phuslu/quic-go/qerr"
+	"github.com/ocdman/quic-go/internal/protocol"
+	"github.com/ocdman/quic-go/internal/utils"
+	"github.com/ocdman/quic-go/qerr"
 )
 
 // errMalformedTag is returned when the tag value cannot be read

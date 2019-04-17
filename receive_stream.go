@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phuslu/quic-go/internal/flowcontrol"
-	"github.com/phuslu/quic-go/internal/protocol"
-	"github.com/phuslu/quic-go/internal/utils"
-	"github.com/phuslu/quic-go/internal/wire"
+	"github.com/ocdman/quic-go/internal/flowcontrol"
+	"github.com/ocdman/quic-go/internal/protocol"
+	"github.com/ocdman/quic-go/internal/utils"
+	"github.com/ocdman/quic-go/internal/wire"
 )
 
 type receiveStreamI interface {

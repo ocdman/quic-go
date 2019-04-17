@@ -3,8 +3,8 @@ package wire
 import (
 	"bytes"
 
-	"github.com/phuslu/quic-go/internal/protocol"
-	"github.com/phuslu/quic-go/internal/utils"
+	"github.com/ocdman/quic-go/internal/protocol"
+	"github.com/ocdman/quic-go/internal/utils"
 )
 
 type windowUpdateFrame struct {
